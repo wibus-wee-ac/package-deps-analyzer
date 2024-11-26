@@ -32,3 +32,10 @@ export interface PnpmLockfile {
     optionalDependencies?: Record<string, string>;
   }>;
 }
+
+export interface DependencyChain {
+  name: string;
+  version: string;
+  type?: 'normal' | 'peer' | 'optional';
+  parent?: DependencyChain;
+}

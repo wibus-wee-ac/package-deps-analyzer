@@ -1,7 +1,7 @@
 import { BaseAnalyzer } from './base-analyzer';
 import { parse as parseYaml } from 'yaml';
 import { readFile } from 'fs/promises';
-import { PackageInfo, AnalyzeResult, PnpmLockfile } from '../types';
+import { PackageInfo, AnalyzeResult, PnpmLockfile, DependencyChain } from '../types';
 
 export class PnpmAnalyzer extends BaseAnalyzer {
   protected lockfileContent: PnpmLockfile | null = null;
@@ -134,5 +134,89 @@ export class PnpmAnalyzer extends BaseAnalyzer {
     });
 
     return Array.from(packages);
+  }
+
+  async traceDependencyChain(packageName: string): Promise<DependencyChain[]> {
+    if (!this.lockfileContent) {
+      throw new Error('Lockfile not initialized');
+    }
+
+    const chains: DependencyChain[] = [];
+    const visited = new Set<string>();
+
+    const findDependencyChains = (
+      pkgName: string,
+      chain: DependencyChain | undefined = undefined
+    ) => {
+      if (visited.has(pkgName)) return;
+      visited.add(pkgName);
+
+      const { packages = {}, snapshots = {} } = this.lockfileContent!;
+
+      // 查找所有依赖这个包的包
+      for (const [pkgPath, pkgInfo] of Object.entries(packages)) {
+        if (pkgPath.includes(pkgName)) continue;
+
+        const pkg = this.parsePackagePath(pkgPath);
+        let dependencyType: 'normal' | 'peer' | 'optional' | undefined;
+
+        if (pkgInfo.dependencies?.[pkgName]) {
+          dependencyType = 'normal';
+        } else if (pkgInfo.peerDependencies?.[pkgName]) {
+          dependencyType = 'peer';
+        } else if (pkgInfo.optionalDependencies?.[pkgName]) {
+          dependencyType = 'optional';
+        }
+
+        if (dependencyType) {
+          const newChain: DependencyChain = {
+            name: pkg.name,
+            version: pkg.version,
+            type: dependencyType,
+            parent: chain
+          };
+
+          if (!chain) {
+            chains.push(newChain);
+          }
+          
+          findDependencyChains(pkg.name, newChain);
+        }
+      }
+
+      // 检查快照中的依赖
+      for (const [snapshotKey, snapshotInfo] of Object.entries(snapshots)) {
+        if (snapshotKey.includes(pkgName)) continue;
+
+        const [name, version] = snapshotKey.split('@');
+        let dependencyType: 'normal' | 'peer' | 'optional' | undefined;
+
+        if (snapshotInfo.dependencies?.[pkgName]) {
+          dependencyType = 'normal';
+        } else if (snapshotInfo.peerDependencies?.[pkgName]) {
+          dependencyType = 'peer';
+        } else if (snapshotInfo.optionalDependencies?.[pkgName]) {
+          dependencyType = 'optional';
+        }
+
+        if (dependencyType) {
+          const newChain: DependencyChain = {
+            name,
+            version,
+            type: dependencyType,
+            parent: chain
+          };
+
+          if (!chain) {
+            chains.push(newChain);
+          }
+
+          findDependencyChains(name, newChain);
+        }
+      }
+    };
+
+    findDependencyChains(packageName);
+    return chains;
   }
 }

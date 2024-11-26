@@ -10,7 +10,7 @@ Analyze package dependencies and dependents.
 ## Usage
 
 ```bash
-pkg-deps --help
+$ pkg-deps --help
 
 Usage: pkg-deps [options] <packages...>
 
@@ -22,6 +22,7 @@ Arguments:
 Options:
   -V, --version      output the version number
   -f, --file <path>  Lockfile path (default: "./pnpm-lock.yaml")
+  -t, --trace        Show complete dependency chains
   -h, --help         display help for command
 ```
 

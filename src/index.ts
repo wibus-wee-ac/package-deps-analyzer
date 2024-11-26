@@ -6,6 +6,7 @@ import chalk from 'chalk';
 import micromatch from 'micromatch';
 import { AnalyzerFactory } from './analyzers/analyzer-factory';
 import { OutputFormatter } from './formatters/output-formatter';
+import { PnpmAnalyzer } from './analyzers/pnpm-analyzer';
 
 const program = new Command();
 
@@ -15,6 +16,7 @@ program
   .version('1.0.0')
   .argument('<packages...>', 'Package name (supports wildcards, e.g. @types/*)')
   .option('-f, --file <path>', 'Lockfile path', './pnpm-lock.yaml')
+  .option('-t, --trace', 'Show complete dependency chains')
   .action(async (packages: string[], options) => {
     try {
       const lockfilePath = path.resolve(process.cwd(), options.file);
@@ -45,6 +47,11 @@ program
       for (const pkg of uniquePackages) {
         const result = await analyzer.analyze(pkg);
         console.log(formatter.format(pkg, result));
+
+        if (options.trace) {
+          const chains = await (analyzer as PnpmAnalyzer).traceDependencyChain(pkg);
+          console.log(formatter.formatDependencyChains(chains).join('\n'));
+        }
       }
 
     } catch (error) {

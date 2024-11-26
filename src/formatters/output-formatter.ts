@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { AnalyzeResult, PackageInfo } from '../types';
+import { AnalyzeResult, PackageInfo, DependencyChain } from '../types';
 
 export class OutputFormatter {
   format(packageName: string, result: AnalyzeResult): string {
@@ -78,5 +78,38 @@ export class OutputFormatter {
     } else {
       output.push(chalk.gray('\nNo packages depend on this package'));
     }
+  }
+
+  formatDependencyChains(chains: DependencyChain[]): string[] {
+    const output: string[] = [];
+    
+    if (chains.length === 0) {
+      output.push(chalk.gray('No dependency chains found'));
+      return output;
+    }
+
+    output.push(chalk.cyan('\nDependency Chains:'));
+
+    chains.forEach((chain, index) => {
+      const isLast = index === chains.length - 1;
+      let current: DependencyChain | undefined = chain;
+      const parts: string[] = [];
+
+      while (current) {
+        parts.unshift(`${current.name}@${current.version}`);
+        current = current.parent;
+      }
+
+      const prefix = isLast ? '└─' : '├─';
+      const indent = '   ';
+      
+      parts.forEach((part, i) => {
+        const isLastPart = i === parts.length - 1;
+        const line = `${indent.repeat(i)}${i === 0 ? prefix : '└─'} ${part}`;
+        output.push(chalk.gray(line));
+      });
+    });
+
+    return output;
   }
 }
