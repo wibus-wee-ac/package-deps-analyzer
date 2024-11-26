@@ -1,0 +1,31 @@
+{
+  "name": "package-deps-analyzer",
+  "version": "1.0.0",
+  "type": "module",
+  "bin": {
+    "pkg-deps": "./dist/index.mjs"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "dev": "unbuild --stub",
+    "prepublishOnly": "npm run build",
+    "start": "node ./dist/index.js",
+    "debug": "DEBUG=true npx esno ./src/index.ts"
+  },
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "micromatch": "^4.0.8",
+    "yaml": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/micromatch": "^4.0.9",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "unbuild": "^2.0.0"
+  }
+}
